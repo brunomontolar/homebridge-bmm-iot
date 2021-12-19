@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "BMMIotPlugin",
   "pluginType": "platform",
   "singular": true,
   "schema": {

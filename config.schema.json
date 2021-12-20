@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "BMMIotPlugin",
+  "pluginAlias": "BMMIot",
   "pluginType": "platform",
   "singular": true,
   "schema": {

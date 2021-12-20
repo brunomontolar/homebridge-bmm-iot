@@ -7,10 +7,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/brunomontolar/homebridgeplugin.git"
+    "url": "git://github.com/brunomontolar/homebridge-bmm-iot.git"
   },
   "bugs": {
-    "url": "https://github.com/brunomontolar/homebridgeplugin/issues"
+    "url": "https://github.com/brunomontolar/homebridge-bmm-iot/issues"
   },
   "engines": {
     "node": ">=14.18.1",
@@ -26,13 +26,12 @@
   "keywords": [
     "homebridge-plugin"
   ],
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^16.10.9",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "^8.0.1",
-    "homebridge": "^1.3.5",
+    "eslint": "^8.5.0",
+    "homebridge": "^1.3.8",
     "nodemon": "^2.0.13",
     "rimraf": "^3.0.2",
     "ts-node": "^10.3.0",

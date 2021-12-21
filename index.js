@@ -34,6 +34,8 @@ BmmIotPlatform.prototype.accessories = function (callback) {
             self.accessories.push(new ButtonAccessory(sw, self.log, self.config));
         });
     }
+    setTimeout(self.listen.bind(self), 10);
+    callback(self.accessories);    
 };
 BmmIotPlatform.prototype.receiveMessage = function (value) {
     const self = this;

@@ -1,6 +1,7 @@
 const WebSocketClient = require('./websocket-client');
 
 function WebsocketTransceiver (log, host, port = 80, ioTimeout = 500) {
+  console.log('WebsockerTransceiver');
   this.log = log;
   this.host = host;
   this.port = port;
@@ -12,6 +13,7 @@ function WebsocketTransceiver (log, host, port = 80, ioTimeout = 500) {
   this.ioTimeout = ioTimeout;
 
   this.ws = new WebSocketClient(log);
+  console.log('WebsockerTransceiver Ended');
 }
 
 WebsocketTransceiver.prototype.setCallback = function (callback) {
@@ -54,6 +56,8 @@ WebsocketTransceiver.prototype.processQueue = function (inData) {
 };
 
 WebsocketTransceiver.prototype.wsCallback = function (data) {
+  console.log('wsCallback');
+  console.log ('data.startswith - ' + data);
   if (data.startsWith('OK')) {
     this.processQueue();
     return;

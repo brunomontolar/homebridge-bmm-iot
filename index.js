@@ -1,4 +1,5 @@
 var Service, Characteristic;
+const { setDebugEnabled } = require('homebridge/lib/logger');
 const WebsocketTransceiver = require('./tc-websocket');
 var sentCodes = [];
 
@@ -33,6 +34,11 @@ BmmIotPlatform.prototype.accessories = function (callback) {
         self.config.buttons.forEach(function (sw) {
             self.accessories.push(new ButtonAccessory(sw, self.log, self.config));
         });
+    }
+    if (self.config.lights) {
+      self.config.lights.forEach(function (sw) {
+          self.accessories.push(new LightAccessory(sw, self.log, self.config, self.transcriver));
+      });
     }
     setTimeout(self.listen.bind(self), 10);
     callback(self.accessories);    
@@ -105,6 +111,29 @@ function SwitchAccessory (sw, log, config, transceiver) {
       self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState);
     }, self.throttle, self);
 }
+SwitchAccessory.prototype.notify = function (message) {
+  if (isSameAsSwitch(message, this.sw)) {
+    if (getSwitchState(message, this.sw)) {
+      this.notifyOn();
+    } else {
+      this.notifyOff();
+    }
+    return true;
+  }
+  return false;
+};
+SwitchAccessory.prototype.getServices = function () {
+  const self = this;
+  var services = [];
+  var service = new Service.AccessoryInformation();
+  service.setCharacteristic(Characteristic.Name, self.name)
+    .setCharacteristic(Characteristic.Manufacturer, 'BMM')
+    .setCharacteristic(Characteristic.Model, 'BMM-Switch')
+    .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
+  services.push(service);
+  services.push(self.service);
+  return services;
+};
 /** BUTTON ACCESSORY CLASS **/    
 function ButtonAccessory (sw, log, config) {
   const self = this;
@@ -154,14 +183,118 @@ function ButtonAccessory (sw, log, config) {
     var services = [];
     var service = new Service.AccessoryInformation();
     service.setCharacteristic(Characteristic.Name, self.name)
-        .setCharacteristic(Characteristic.Manufacturer, '433 MHz RC')
-        .setCharacteristic(Characteristic.FirmwareRevision, process.env.version)
-        .setCharacteristic(Characteristic.HardwareRevision, '1.0.0');
+        .setCharacteristic(Characteristic.Manufacturer, 'BMM')
+        .setCharacteristic(Characteristic.Model, 'BMM-Button')
+        .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
     services.push(service);
     services.push(self.service);
     return services;
 };
 
+/** LIGHT ACCESSORY CLASS **/
+function LightAccessory (sw, log, config, transceiver){
+  const self = this;
+  self.name = sw.name;
+  self.sw = sw;
+  self.log = log;
+  self.config = config;
+  self.transceiver = transceiver;
+  self.currentState = false;
+  self.currenthue = 0;
+  self.currentSaturation = 0;
+  self.currentBrightness = 0;
+  self.throttle = config ? config.throttle : 500;
+
+  self.service = new Service.Lightbulb(self.name);
+
+  self.service.getCharacteristic(Characteristic.On).value = self.currentState;
+
+  self.service.getCharacteristic(Characteristic.On).on('get', function (cb){
+    cb(null, self.currentState);
+  });
+
+  self.service.getCharacteristic(Characteristic.On).on('set', function (state, cb) {
+    self.currentState = state;
+    if (self.currentState) {
+      const out = getSendObject(self.sw, true);
+      addCode(out, sentCodes);
+      self.transceiver.send(out);
+      self.log('Sent on code for %s', self.sw.name);
+    } else {
+      const out = getSendObject(self.sw, false);
+      addCode(out, sentCodes);
+      self.transceiver.send(out);
+      self.log('Sent off code for %s', self.sw.name);
+    }
+    cb(null);
+  });
+  if (self.sw.type === 'rgb'){
+    console.log('iniciando HUE');
+    self.service.addCharacteristic(new Characteristic.Hue())
+    .on('get', function (cb) {
+      cb(null, self.currenthue);
+    })
+    .on('set', function (cb) {
+      cb(null, self.currenthue);
+    });
+    self.service.addCharacteristic(new Characteristic.Saturation())
+    .on('get', function (cb) {
+      cb(null, self.currentSaturation);
+    })
+    .on('set', function (cb) {
+      cb(null, self.currentSaturation);
+    });
+    self.service.addCharacteristic(new Characteristic.Brightness())
+    .on('get', self.getRgb.bind(self))
+    .on('set', self.setRgb.bind(self));
+    /*.on('get', 360)
+    .on('set', 0);
+    .on('get', this.getHue.bind(this))
+    self.service.addCharacteristic(new Characteristic.Hue()).on('set', this.setHue.bind(this));*/
+
+    console.log('this one is a fucking rbg! OhhhhYeaahhh')
+  }
+  self.notifyOn = helpers.throttle(function () {
+    self.log('Received on code for %s', self.sw.name);
+    self.currentState = true;
+    self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState);
+  }, self.throttle, self);
+  self.notifyOff = helpers.throttle(function () {
+    self.log('Received off code for %s', self.sw.name);
+    self.currentState = false;
+    self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState);
+  }, self.throttle, self);
+}
+LightAccessory.prototype.getRgb = function (callback) {
+  callback(null, this.currentBrightness);
+};
+LightAccessory.prototype.setRgb = function (level, callback) {
+  this.currentBrightness = 100;
+  callback(null);
+};
+LightAccessory.prototype.notify = function (message) {
+if (isSameAsSwitch(message, this.sw)) {
+  if (getSwitchState(message, this.sw)) {
+    this.notifyOn();
+  } else {
+    this.notifyOff();
+  }
+  return true;
+}
+return false;
+};
+LightAccessory.prototype.getServices = function () {
+const self = this;
+var services = [];
+var service = new Service.AccessoryInformation();
+service.setCharacteristic(Characteristic.Name, self.name)
+  .setCharacteristic(Characteristic.Manufacturer, 'BMM')
+  .setCharacteristic(Characteristic.Model, 'BMM-Light')
+  .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
+services.push(service);
+services.push(self.service);
+return services;
+};
 /** HELPERS SECTION **/
 var helpers = {
     throttle: function (fn, threshold, scope) {
@@ -217,6 +350,36 @@ var helpers = {
     return false;
   }
   
+  function imSameMessage (message) {
+    // int idx = sentCodes.findIndex(imSameMessage, sw);
+    // "this" is compare message info or switch info
+    return isSameMessage(message, this, true);
+  }
+
+  function isSameMessage (message, prototype, compareState = false) {
+    if (!message || !prototype) return;
+    if (message.code && prototype.code) {
+      if (prototype.code == message.code) return true;
+    } else if (message.code && prototype.on) {
+      if (prototype.on.code == message.code) return true;
+    } else if (message.code && prototype.off) {
+      if (prototype.off.code == message.code) return true;
+    }
+    // TODO: other kinds of espilight messages without id/unit
+    else if (message.type && prototype.type) {
+      if (prototype.type == message.type &&
+          prototype.message.id == message.message.id &&
+          prototype.message.unit == message.message.unit) {
+        if (compareState) {
+          if (prototype.message.state == message.message.state) {
+            return true;
+          }
+        } else return true;
+      }
+    }
+    return false;
+  }
+
   // make a new object to send
   function getSendObject (sw, on = undefined) {
     var out = {};

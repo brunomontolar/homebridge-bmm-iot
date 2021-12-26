@@ -55,7 +55,6 @@ WebsocketTransceiver.prototype.processQueue = function (inData) {
 
 WebsocketTransceiver.prototype.wsCallback = function (data) {
   if (data.startsWith('OK')) {
-    console.log('Data Ok - Worked');
     this.processQueue();
     return;
   }

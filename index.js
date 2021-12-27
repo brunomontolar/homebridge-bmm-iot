@@ -247,12 +247,6 @@ function LightAccessory (sw, log, config, transceiver){
     self.service.addCharacteristic(new Characteristic.Brightness())
     .on('get', self.getRgb.bind(self))
     .on('set', self.setRgb.bind(self));
-    /*.on('get', 360)
-    .on('set', 0);
-    .on('get', this.getHue.bind(this))
-    self.service.addCharacteristic(new Characteristic.Hue()).on('set', this.setHue.bind(this));*/
-
-    console.log('this one is a fucking rbg! OhhhhYeaahhh')
   }
   self.notifyOn = helpers.throttle(function () {
     self.log('Received on code for %s', self.sw.name);
@@ -266,10 +260,16 @@ function LightAccessory (sw, log, config, transceiver){
   }, self.throttle, self);
 }
 LightAccessory.prototype.getRgb = function (callback) {
+  this.transceiver.send('teste');
   callback(null, this.currentBrightness);
 };
 LightAccessory.prototype.setRgb = function (level, callback) {
   this.currentBrightness = 100;
+  var msg = [];
+  msg.code = 'on';
+  msg.pulse = 'pulse';
+  msg.protocol = 'protocol';
+  this.transceiver.send(msg);
   callback(null);
 };
 LightAccessory.prototype.notify = function (message) {

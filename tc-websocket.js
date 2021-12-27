@@ -24,6 +24,7 @@ WebsocketTransceiver.prototype.init = function () {
 };
 
 WebsocketTransceiver.prototype.send = function (message) {
+  this.log('Sending message: ', message);
   var msg = null;
   if (message.code) {
     msg = message.code + '/' + message.pulse + '/' + message.protocol;

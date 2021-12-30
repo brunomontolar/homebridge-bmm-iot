@@ -43,22 +43,31 @@ BmmIotPlatform.prototype.accessories = function (callback) {
     setTimeout(self.listen.bind(self), 10);
     callback(self.accessories);    
 };
+
+/*SEND DEVICE_ID ON DEVICE STARTUP*/
 BmmIotPlatform.prototype.receiveMessage = function (value) {
+    // console.log("mensagem recebida:", value);
     const self = this;
     var found = false;
-    if (!checkCode(value, sentCodes, false) && self.accessories) {
+
+    if (value.deviceId){
       self.accessories.forEach(function (accessory) {
-        if (accessory.notify.call(accessory, value)) found = true;
+        if (accessory.update(value)) found = true;
+        return;
       });
-    } else {
-      found = true;
-    }
-    if (!found) {
-      try {
-        self.log(JSON.stringify(value));
-      } catch (e) { this.log(e); }
-    }
-  };
+    } else if (!checkCode(value, sentCodes, false) && self.accessories) {
+        self.accessories.forEach(function (accessory) {
+          if (accessory.notify.call(accessory, value)) found = true;
+        });
+      } else {
+        found = true;
+      }
+      if (!found) {
+        try {
+          self.log(JSON.stringify(value));
+        } catch (e) { this.log(e); }
+      }
+    };
 
   module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
@@ -111,6 +120,14 @@ function SwitchAccessory (sw, log, config, transceiver) {
       self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState);
     }, self.throttle, self);
 }
+
+SwitchAccessory.prototype.update = function (message) {
+  if (message.deviceId === 1323) {
+    this.log("rodou 1");
+    return true;
+  }
+  return false;
+};
 SwitchAccessory.prototype.notify = function (message) {
   if (isSameAsSwitch(message, this.sw)) {
     if (getSwitchState(message, this.sw)) {
@@ -167,28 +184,35 @@ function ButtonAccessory (sw, log, config) {
     setTimeout(this.resetButton.bind(this), 1000);
   }, self.throttle, self);
 }
-    ButtonAccessory.prototype.notify = function (message) {
-    if (isSameAsSwitch(message, this.sw, true)) {
-        this.notifyOn();
-        return true;
-    }
-    return false;
-    };
-    ButtonAccessory.prototype.resetButton = function () {
-    this.currentState = false;
-    this.service.getCharacteristic(Characteristic.On).updateValue(this.currentState);
-    };
-    ButtonAccessory.prototype.getServices = function () {
-    const self = this;
-    var services = [];
-    var service = new Service.AccessoryInformation();
-    service.setCharacteristic(Characteristic.Name, self.name)
-        .setCharacteristic(Characteristic.Manufacturer, 'BMM')
-        .setCharacteristic(Characteristic.Model, 'BMM-Button')
-        .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
-    services.push(service);
-    services.push(self.service);
-    return services;
+ButtonAccessory.prototype.update = function (message) {
+  if (message.deviceId === 1123) {
+    this.log("rodou 2");
+    return true;
+  }
+  return false;
+};
+ButtonAccessory.prototype.notify = function (message) {
+if (isSameAsSwitch(message, this.sw, true)) {
+    this.notifyOn();
+    return true;
+}
+return false;
+};
+ButtonAccessory.prototype.resetButton = function () {
+this.currentState = false;
+this.service.getCharacteristic(Characteristic.On).updateValue(this.currentState);
+};
+ButtonAccessory.prototype.getServices = function () {
+const self = this;
+var services = [];
+var service = new Service.AccessoryInformation();
+service.setCharacteristic(Characteristic.Name, self.name)
+    .setCharacteristic(Characteristic.Manufacturer, 'BMM')
+    .setCharacteristic(Characteristic.Model, 'BMM-Button')
+    .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
+services.push(service);
+services.push(self.service);
+return services;
 };
 
 /** LIGHT ACCESSORY CLASS **/
@@ -200,6 +224,7 @@ function LightAccessory (sw, log, config, transceiver){
   self.config = config;
   self.transceiver = transceiver;
   self.currentState = false;
+  self.msg = {};
   self.currenthue = 0;
   self.currentSaturation = 0;
   self.currentBrightness = 0;
@@ -208,45 +233,44 @@ function LightAccessory (sw, log, config, transceiver){
   self.service = new Service.Lightbulb(self.name);
 
   self.service.getCharacteristic(Characteristic.On).value = self.currentState;
+  this.log("SW:", this.sw);
 
-  self.service.getCharacteristic(Characteristic.On).on('get', function (cb){
-    cb(null, self.currentState);
-  });
+  // self.service.getCharacteristic(Characteristic.On).on('get', function (cb){
+  //   cb(null, self.currentState);
+  // });
 
-  self.service.getCharacteristic(Characteristic.On).on('set', function (state, cb) {
-    self.currentState = state;
-    if (self.currentState) {
-      const out = getSendObject(self.sw, true);
-      addCode(out, sentCodes);
-      self.transceiver.send(out);
-      self.log('Sent on code for %s', self.sw.name);
-    } else {
-      const out = getSendObject(self.sw, false);
-      addCode(out, sentCodes);
-      self.transceiver.send(out);
-      self.log('Sent off code for %s', self.sw.name);
-    }
-    cb(null);
-  });
+  // self.service.getCharacteristic(Characteristic.On).on('set', function (state, cb) {
+  //   self.currentState = state;
+  //   if (self.currentState) {
+  //     const out = getSendObject(self.sw, true);
+  //     addCode(out, sentCodes);
+  //     self.transceiver.send(out);
+  //     self.log('Sent on code for %s', self.sw.name);
+  //   } else {
+  //     const out = getSendObject(self.sw, false);
+  //     addCode(out, sentCodes);
+  //     self.transceiver.send(out);
+  //     self.log('Sent off code for %s', self.sw.name);
+  //   }
+  //   cb(null);
+  // });
+
+  self.service.getCharacteristic(Characteristic.On)
+    .on('get', self.getRgb.bind(self, 'o'))
+    .on('set', self.setRgb.bind(self, 'o'));
+
   if (self.sw.type === 'rgb'){
-    console.log('iniciando HUE');
     self.service.addCharacteristic(new Characteristic.Hue())
-    .on('get', function (cb) {
-      cb(null, self.currenthue);
-    })
-    .on('set', function (cb) {
-      cb(null, self.currenthue);
-    });
+    .on('get', self.getRgb.bind(self, 'h'))
+    .on('set', self.setRgb.bind(self, 'h'));
+
     self.service.addCharacteristic(new Characteristic.Saturation())
-    .on('get', function (cb) {
-      cb(null, self.currentSaturation);
-    })
-    .on('set', function (cb) {
-      cb(null, self.currentSaturation);
-    });
+    .on('get', self.getRgb.bind(self, 's'))
+    .on('set', self.setRgb.bind(self, 's'));
+
     self.service.addCharacteristic(new Characteristic.Brightness())
-    .on('get', self.getRgb.bind(self))
-    .on('set', self.setRgb.bind(self));
+    .on('get', self.getRgb.bind(self, 'b'))
+    .on('set', self.setRgb.bind(self, 'b'));
   }
   self.notifyOn = helpers.throttle(function () {
     self.log('Received on code for %s', self.sw.name);
@@ -259,20 +283,34 @@ function LightAccessory (sw, log, config, transceiver){
     self.service.getCharacteristic(Characteristic.On).updateValue(self.currentState);
   }, self.throttle, self);
 }
-LightAccessory.prototype.getRgb = function (callback) {
-  this.transceiver.send('teste');
+LightAccessory.prototype.getRgb = function (param, callback) {
+  // this.log('get param: ', param);
+  this.msg = {};
+  this.msg.request = 'g';
+  this.msg.param = param;
+  this.log("Get param:", this.msg.param);
+  this.transceiver.send(this.msg);
   callback(null, this.currentBrightness);
 };
-LightAccessory.prototype.setRgb = function (level, callback) {
+LightAccessory.prototype.setRgb = function (param, level, callback) {
   this.currentBrightness = 100;
-  var msg = [];
-  msg.code = 'on';
-  msg.pulse = 'pulse';
-  msg.protocol = 'protocol';
-  this.transceiver.send(msg);
+  // this.log('set param:', param, 'level:', level);
+  this.msg = {};
+  this.msg.request = 's';
+  this.msg.param = param;
+  this.msg.level = level;
+  this.transceiver.send(this.msg);
   callback(null);
 };
+LightAccessory.prototype.update = function (message) {
+  if (message.deviceId === 123) {
+    this.log("Update:", message.param);
+    return true;
+  }
+  return false;
+};
 LightAccessory.prototype.notify = function (message) {
+  this.log("RECEIVED MESSAGE:", message);
 if (isSameAsSwitch(message, this.sw)) {
   if (getSwitchState(message, this.sw)) {
     this.notifyOn();

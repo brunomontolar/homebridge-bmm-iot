@@ -235,26 +235,6 @@ function LightAccessory (sw, log, config, transceiver){
   self.service.getCharacteristic(Characteristic.On).value = self.currentState;
   this.log("SW:", this.sw);
 
-  // self.service.getCharacteristic(Characteristic.On).on('get', function (cb){
-  //   cb(null, self.currentState);
-  // });
-
-  // self.service.getCharacteristic(Characteristic.On).on('set', function (state, cb) {
-  //   self.currentState = state;
-  //   if (self.currentState) {
-  //     const out = getSendObject(self.sw, true);
-  //     addCode(out, sentCodes);
-  //     self.transceiver.send(out);
-  //     self.log('Sent on code for %s', self.sw.name);
-  //   } else {
-  //     const out = getSendObject(self.sw, false);
-  //     addCode(out, sentCodes);
-  //     self.transceiver.send(out);
-  //     self.log('Sent off code for %s', self.sw.name);
-  //   }
-  //   cb(null);
-  // });
-
   self.service.getCharacteristic(Characteristic.On)
     .on('get', self.getRgb.bind(self, 'o'))
     .on('set', self.setRgb.bind(self, 'o'));
@@ -269,8 +249,8 @@ function LightAccessory (sw, log, config, transceiver){
     .on('set', self.setRgb.bind(self, 's'));
 
     self.service.addCharacteristic(new Characteristic.Brightness())
-    .on('get', self.getRgb.bind(self, 'b'))
-    .on('set', self.setRgb.bind(self, 'b'));
+    .on('get', self.getRgb.bind(self, 'v'))
+    .on('set', self.setRgb.bind(self, 'v'));
   }
   self.notifyOn = helpers.throttle(function () {
     self.log('Received on code for %s', self.sw.name);
@@ -302,10 +282,21 @@ LightAccessory.prototype.setRgb = function (param, level, callback) {
   this.transceiver.send(this.msg);
   callback(null);
 };
+// This part updates based on message received from ESP
 LightAccessory.prototype.update = function (message) {
-  if (message.deviceId === 123) {
-    this.log("Update:", message.param);
-    return true;
+  // if (message.deviceId === 123) {
+  if (123 === 123) {
+    this.log(message)
+    this.log("Update:", message.param, message.value);
+    if (message.param == 'o'){
+      // if (message.level === 'true'){
+      //   this.service.getCharacteristic(Characteristic.On).updateValue(true);  
+      // } else{
+      //   this.service.getCharacteristic(Characteristic.On).updateValue(false);
+      // }
+      this.service.getCharacteristic(Characteristic.On).updateValue(message.value);
+    }
+      return true;
   }
   return false;
 };
@@ -322,16 +313,16 @@ if (isSameAsSwitch(message, this.sw)) {
 return false;
 };
 LightAccessory.prototype.getServices = function () {
-const self = this;
-var services = [];
-var service = new Service.AccessoryInformation();
-service.setCharacteristic(Characteristic.Name, self.name)
-  .setCharacteristic(Characteristic.Manufacturer, 'BMM')
-  .setCharacteristic(Characteristic.Model, 'BMM-Light')
-  .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
-services.push(service);
-services.push(self.service);
-return services;
+  const self = this;
+  var services = [];
+  var service = new Service.AccessoryInformation();
+  service.setCharacteristic(Characteristic.Name, self.name)
+    .setCharacteristic(Characteristic.Manufacturer, 'BMM')
+    .setCharacteristic(Characteristic.Model, 'BMM-Light')
+    .setCharacteristic(Characteristic.HardwareRevision, '0.0.1');
+  services.push(service);
+  services.push(self.service);
+  return services;
 };
 /** HELPERS SECTION **/
 var helpers = {

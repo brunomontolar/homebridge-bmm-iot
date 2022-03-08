@@ -40,6 +40,7 @@ BmmIotPlatform.prototype.accessories = function (callback) {
           self.accessories.push(new LightAccessory(sw, self.log, self.config, self.transcriver));
       });
     }
+    self.log(self.accessories);
     setTimeout(self.listen.bind(self), 10);
     callback(self.accessories);    
 };
@@ -235,11 +236,15 @@ function LightAccessory (sw, log, config, transceiver){
   self.service.getCharacteristic(Characteristic.On).value = self.currentState;
   this.log("SW:", this.sw);
 
-  self.service.getCharacteristic(Characteristic.On)
+  // self.service.getCharacteristic(Characteristic.On)
+  //   .on('get', self.getRgb.bind(self, 'o'))
+  //   .on('set', self.setRgb.bind(self, 'o'));
+
+  if (self.sw.type === 'rgb'){
+    self.service.getCharacteristic(Characteristic.On)
     .on('get', self.getRgb.bind(self, 'o'))
     .on('set', self.setRgb.bind(self, 'o'));
 
-  if (self.sw.type === 'rgb'){
     self.service.addCharacteristic(new Characteristic.Hue())
     .on('get', self.getRgb.bind(self, 'h'))
     .on('set', self.setRgb.bind(self, 'h'));
@@ -251,6 +256,10 @@ function LightAccessory (sw, log, config, transceiver){
     self.service.addCharacteristic(new Characteristic.Brightness())
     .on('get', self.getRgb.bind(self, 'v'))
     .on('set', self.setRgb.bind(self, 'v'));
+  } else if (self.sw.type === 'modes_light') {
+    self.service.getCharacteristic(Characteristic.On)
+    .on('get', self.getRgb.bind(self, 'm'))
+    .on('set', self.setRgb.bind(self, 'm'));
   }
   self.notifyOn = helpers.throttle(function () {
     self.log('Received on code for %s', self.sw.name);
@@ -266,35 +275,41 @@ function LightAccessory (sw, log, config, transceiver){
 LightAccessory.prototype.getRgb = function (param, callback) {
   // this.log('get param: ', param);
   this.msg = {};
+  this.msg.deviceId = this.config.deviceId;
   this.msg.request = 'g';
   this.msg.param = param;
-  this.log("Get param:", this.msg.param);
+  this.log("Get param:", this.msg);
   this.transceiver.send(this.msg);
   callback(null, this.currentBrightness);
 };
 LightAccessory.prototype.setRgb = function (param, level, callback) {
-  this.currentBrightness = 100;
+  // this.currentBrightness = 100;
   // this.log('set param:', param, 'level:', level);
   this.msg = {};
+  this.msg.deviceId = this.config.deviceId;
   this.msg.request = 's';
   this.msg.param = param;
   this.msg.level = level;
   this.transceiver.send(this.msg);
+  this.log('Set Message: ',this.msg)
   callback(null);
 };
 // This part updates based on message received from ESP
 LightAccessory.prototype.update = function (message) {
-  // if (message.deviceId === 123) {
-  if (123 === 123) {
-    this.log(message)
-    this.log("Update:", message.param, message.value);
-    if (message.param == 'o'){
+  this.log("Update:", message);
+  if (message.deviceId === this.config.deviceId) {
+    if (message.param === 'o'){
+      this.log("menssagem O:", message);
       // if (message.level === 'true'){
       //   this.service.getCharacteristic(Characteristic.On).updateValue(true);  
       // } else{
       //   this.service.getCharacteristic(Characteristic.On).updateValue(false);
       // }
-      this.service.getCharacteristic(Characteristic.On).updateValue(message.value);
+      // this.service.getCharacteristic(Characteristic.On).updateValue(message.value);
+    }
+    if (message.param === 'm'){
+      this.log("menssagem M:", message);
+      // this.service.getCharacteristic(Characteristic.On).updateValue(message.value);
     }
       return true;
   }

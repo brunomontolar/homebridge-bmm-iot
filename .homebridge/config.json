@@ -1,0 +1,50 @@
+{
+    "bridge": {
+        "name": "Homebridge 7A9",
+        "username": "CC:22:3D:E3:CE:30",
+        "port": 51826,
+        "pin": "031-45-154"
+    },
+    "accessories": [],
+    "platforms": [
+        {
+            "platform": "config",
+            "name": "Config",
+            "port": 8181,
+            "sudo": false
+        },
+        {
+            "platform": "BMMIot",
+            "name": "BMMIot",
+            "host": "192.168.86.45",
+            "port": 80,
+            "deviceId": "062WT2",
+            "lights": [
+                {
+                    "name": "Test Light_Rgb",
+                    "type": "rgb",
+                    "message": {
+                        "id": "A5",
+                        "unit": 66
+                    }
+                }
+            ]
+        },
+        {
+            "platform": "BMMIot",
+            "name": "BMMIot",
+            "host": "192.168.86.45",
+            "port": 80,
+            "deviceId": "062WT2",
+            "lights": [
+                {
+                    "name": "Rainbow Light",
+                    "type": "modes_light",
+                    "modes": {
+                        "rainbow": 1
+                    }
+                }
+            ]
+        }
+    ]
+}

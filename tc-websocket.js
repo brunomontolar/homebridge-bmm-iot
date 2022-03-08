@@ -24,6 +24,7 @@ WebsocketTransceiver.prototype.init = function () {
 };
 
 WebsocketTransceiver.prototype.send = function (message) {
+  // this.log("Transceiver received: ", message);
   var msg = null;
   if (message.code) {
     msg = message.code + '/' + message.pulse + '/' + message.protocol;
@@ -35,10 +36,15 @@ WebsocketTransceiver.prototype.send = function (message) {
     msg = JSON.stringify(message);
   }
   if (msg == null) return;
+  if (this._queue.length > 4){ //Temporary fix some bug that queue didn't move and _busy didn't change from true
+    this._queue = [];
+    this._busy = false;
+  }
   this._queue.push(msg);
   if (this._busy) return;
   this._busy = true;
   this.processQueue();
+  // this.log("Transceiver Processing Queue...");
 };
 
 WebsocketTransceiver.prototype.processQueue = function (inData) {
@@ -52,6 +58,7 @@ WebsocketTransceiver.prototype.processQueue = function (inData) {
     setTimeout(this.processQueue.bind(this, next), this.ioTimeout);
   } else {
     this.ws.send(next);
+    this.log("Transceiver sent: ", next);
   }
 };
 

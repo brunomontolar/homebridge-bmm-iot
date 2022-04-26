@@ -16,7 +16,7 @@
         {
             "platform": "BMMIot",
             "name": "BMMIot",
-            "host": "192.168.86.45",
+            "host": "192.168.86.1",
             "port": 80,
             "deviceId": "062WT2",
             "lights": [
@@ -33,12 +33,41 @@
         {
             "platform": "BMMIot",
             "name": "BMMIot",
-            "host": "192.168.86.45",
+            "host": "192.168.86.1",
             "port": 80,
             "deviceId": "062WT2",
             "lights": [
                 {
                     "name": "Rainbow Light",
+                    "type": "modes_light",
+                    "modes": {
+                        "rainbow": 1
+                    }
+                }
+            ]
+        },
+        {
+            "platform": "BMMIot",
+            "name": "BMMIot",
+            "host": "192.168.86.201",
+            "port": 80,
+            "deviceId": "062WT3",
+            "lights": [
+                {
+                    "name": "RGB Quarto",
+                    "type": "rgb"
+                }
+            ]
+        },
+        {
+            "platform": "BMMIot",
+            "name": "BMMIot",
+            "host": "192.168.86.201",
+            "port": 80,
+            "deviceId": "062WT3",
+            "lights": [
+                {
+                    "name": "Rainbow Quarto",
                     "type": "modes_light",
                     "modes": {
                         "rainbow": 1

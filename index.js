@@ -40,14 +40,12 @@ BmmIotPlatform.prototype.accessories = function (callback) {
           self.accessories.push(new LightAccessory(sw, self.log, self.config, self.transcriver));
       });
     }
-    self.log(self.accessories);
+
     setTimeout(self.listen.bind(self), 10);
     callback(self.accessories);    
 };
 
-/*SEND DEVICE_ID ON DEVICE STARTUP*/
 BmmIotPlatform.prototype.receiveMessage = function (value) {
-    // console.log("mensagem recebida:", value);
     const self = this;
     var found = false;
 
@@ -234,8 +232,6 @@ function LightAccessory (sw, log, config, transceiver){
   self.service = new Service.Lightbulb(self.name);
 
   self.service.getCharacteristic(Characteristic.On).value = self.currentState;
-  this.log("SW:", this.sw);
-
   // self.service.getCharacteristic(Characteristic.On)
   //   .on('get', self.getRgb.bind(self, 'o'))
   //   .on('set', self.setRgb.bind(self, 'o'));

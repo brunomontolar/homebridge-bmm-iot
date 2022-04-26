@@ -4,7 +4,7 @@ function WebSocketClient (log) {
   this.log = log;
   this.number = 0; // Message number
   this.autoReconnectInterval = 20 * 1000; // ms
-  this.pongReturned = true;
+  this.pongReturned = false;
 }
 WebSocketClient.prototype.open = function (url) {
   const self = this;
@@ -56,10 +56,14 @@ WebSocketClient.prototype.checkPing = function () {
   }
 };
 WebSocketClient.prototype.send = function (data, option) {
-  try {
-    this.instance.send(data, option);
-  } catch (e) {
-    this.instance.emit('error', e);
+  if (this.pongReturned){
+    try {
+      this.instance.send(data, option);
+    } catch (e) {
+      this.instance.emit('error', e);
+    }
+  } else {
+    return
   }
 };
 WebSocketClient.prototype.reconnect = function (e) {
